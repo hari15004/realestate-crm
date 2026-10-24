@@ -13,6 +13,8 @@ const sources = ['Meta', 'Instagram', 'Website', 'WhatsApp', 'Referral', 'Phone'
 const types = ['Plot', 'Flat/Apartment', 'Villa/House', 'Commercial', 'Land', 'Other']
 const purposes = ['Investment', 'Self-use', 'Business', 'Other']
 const timelines = ['Within 1 month', '1-3 months', '3-6 months', 'More than 6 months']
+const payments = ['Cash', 'Home loan', 'Part cash + part loan', 'Not decided']
+const interests = ['High', 'Medium', 'Low']
 
 type Option = { id: string; name: string }
 type Form = Record<string, string>
@@ -59,6 +61,7 @@ export default function EditLeadPage() {
         property_type: s('property_type'), preferred_location: s('preferred_location'),
         budget: s('budget'), purpose: s('purpose'), timeline: s('timeline'), notes: s('notes'),
         assigned_to: s('assigned_to'),
+        payment_preference: s('payment_preference'), interest_level: s('interest_level'),
       })
       setStatus(s('status') || 'New')
       setOrigPhone(s('phone'))
@@ -125,6 +128,8 @@ export default function EditLeadPage() {
         purpose: form.purpose || null,
         timeline: form.timeline || null,
         notes: form.notes || null,
+        payment_preference: form.payment_preference || null,
+        interest_level: form.interest_level || null,
         assigned_to: form.assigned_to || null,
         score,
         quality,
@@ -224,6 +229,18 @@ export default function EditLeadPage() {
           <select className={box} value={form.timeline} onChange={(e) => set('timeline', e.target.value)}>
             <option value="">Not sure</option>
             {timelines.map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Payment preference">
+          <select className={box} value={form.payment_preference} onChange={(e) => set('payment_preference', e.target.value)}>
+            <option value="">Not sure</option>
+            {payments.map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Interest level">
+          <select className={box} value={form.interest_level} onChange={(e) => set('interest_level', e.target.value)}>
+            <option value="">Not sure</option>
+            {interests.map((s) => <option key={s}>{s}</option>)}
           </select>
         </Field>
         <Field label="Notes">

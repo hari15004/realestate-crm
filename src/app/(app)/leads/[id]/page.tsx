@@ -35,6 +35,8 @@ type Lead = {
   ad_set: string | null
   ad: string | null
   property_id: string | null
+  payment_preference: string | null
+  interest_level: string | null
   property_type: string | null
   location: string | null
   preferred_location: string | null
@@ -98,6 +100,7 @@ export default function LeadDetailPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [panel, setPanel] = useState<Panel>(null)
+  const [projectName, setProjectName] = useState('')
 
   const [callResult, setCallResult] = useState('Connected')
   const [callNote, setCallNote] = useState('')
@@ -124,6 +127,11 @@ export default function LeadDetailPage() {
       return
     }
     setLead(l.data as Lead)
+    const pid = (l.data as Lead).property_id
+    if (pid) {
+      const { data: pr } = await supabase.from('properties').select('name').eq('id', pid).single()
+      setProjectName(pr?.name ?? '')
+    } else setProjectName('')
     setActivities((a.data ?? []) as Activity[])
     const map: Record<string, string> = {}
     ;(p.data ?? []).forEach((x) => {
@@ -290,10 +298,13 @@ export default function LeadDetailPage() {
         <Info label="Source" value={lead.source} />
         <Info label="Campaign" value={lead.campaign} />
         <Info label="Ad set / Ad" value={[lead.ad_set, lead.ad].filter(Boolean).join(' / ')} />
+        <Info label="Project" value={projectName || null} />
         <Info label="Property type" value={lead.property_type} />
         <Info label="Preferred location" value={lead.preferred_location} />
         <Info label="Budget" value={formatBudget(lead.budget)} />
         <Info label="Purpose" value={lead.purpose} />
+        <Info label="Payment preference" value={lead.payment_preference} />
+        <Info label="Interest level" value={lead.interest_level} />
         <Info label="Plans to buy" value={lead.timeline} />
         <Info label="Call attempts" value={String(lead.call_attempts ?? 0)} />
         <Info label="Last call result" value={lead.last_call_status} />
