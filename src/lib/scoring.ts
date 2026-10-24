@@ -2,6 +2,8 @@
 // This is only a priority indicator for the sales team.
 // It does NOT predict whether a lead will actually buy.
 
+import { createClient } from '@/lib/supabase/client'
+
 export type ScoreInput = {
   budget?: number | null
   property_id?: string | null
@@ -17,7 +19,7 @@ export type ScoreInput = {
 
 export type Quality = 'Best' | 'Good' | 'Medium' | 'Poor'
 
-// Change the points here to tune the scoring later.
+// Default points. An admin can change them from Settings > Scoring rules.
 export const SCORING_RULES = {
   budgetGiven: 15,
   propertyClear: 10,
@@ -45,6 +47,46 @@ export const SCORING_RULES = {
   bestFrom: 70,
   goodFrom: 45,
   mediumFrom: 25,
+}
+
+export const DEFAULT_RULES = JSON.parse(JSON.stringify(SCORING_RULES)) as typeof SCORING_RULES
+
+// Copies saved numbers on top of the current rules. Unknown keys are ignored.
+export function applyRules(saved: Record<string, unknown>) {
+  const r = SCORING_RULES as unknown as Record<string, unknown>
+  for (const [key, value] of Object.entries(saved)) {
+    if (!(key in r)) continue
+    if (typeof value === 'number' && typeof r[key] === 'number') {
+      r[key] = value
+    } else if (value && typeof value === 'object' && r[key] && typeof r[key] === 'object') {
+      const target = r[key] as Record<string, number>
+      for (const [k2, v2] of Object.entries(value as Record<string, unknown>)) {
+        if (typeof v2 === 'number') target[k2] = v2
+      }
+    }
+  }
+}
+
+let loaded = false
+
+// Browser only: reads the saved rules once from the settings table.
+export async function loadScoringRules() {
+  if (loaded) return
+  loaded = true
+  try {
+    const { data } = await createClient()
+      .from('settings')
+      .select('value')
+      .eq('key', 'scoring')
+      .maybeSingle()
+    if (data && data.value) applyRules(data.value as Record<string, unknown>)
+  } catch {
+    // keep the default rules if anything goes wrong
+  }
+}
+
+if (typeof window !== 'undefined') {
+  void loadScoringRules()
 }
 
 export function calculateScore(lead: ScoreInput): { score: number; quality: Quality } {

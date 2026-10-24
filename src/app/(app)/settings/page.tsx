@@ -288,6 +288,13 @@ export default function SettingsPage() {
           Download Sample File
         </button>
 
+        <a
+          href="/settings/scoring"
+          className="block w-full text-center bg-slate-100 text-slate-800 rounded-xl py-3 font-semibold"
+        >
+          Scoring Rules (admin)
+        </a>
+
         <label className="block">
           <span className="block text-sm font-medium text-slate-600 mb-1">
             Import Leads (CSV file)
