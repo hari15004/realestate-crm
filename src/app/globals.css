@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a;
+  --foreground: #ededed;
 }
 
 @theme inline {
@@ -12,15 +12,47 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Dark theme overrides for the existing slate/white classes */
+.bg-white {
+  background-color: #171717 !important;
+}
+.bg-slate-50 {
+  background-color: #1f1f1f !important;
+}
+.bg-slate-100 {
+  background-color: #262626 !important;
+}
+.bg-slate-200 {
+  background-color: #333333 !important;
+}
+.text-slate-800 {
+  color: #f1f5f9 !important;
+}
+.text-slate-700 {
+  color: #e2e8f0 !important;
+}
+.text-slate-600 {
+  color: #cbd5e1 !important;
+}
+.text-slate-500 {
+  color: #94a3b8 !important;
+}
+.border-slate-300 {
+  border-color: #404040 !important;
+}
+.border,
+.border-b,
+.border-r,
+.border-t {
+  border-color: #2a2a2a;
 }
