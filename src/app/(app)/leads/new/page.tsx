@@ -11,6 +11,8 @@ const sources = ['Meta', 'Instagram', 'Website', 'WhatsApp', 'Referral', 'Phone'
 const types = ['Plot', 'Flat/Apartment', 'Villa/House', 'Commercial', 'Land', 'Other']
 const purposes = ['Investment', 'Self-use', 'Business', 'Other']
 const timelines = ['Within 1 month', '1-3 months', '3-6 months', 'More than 6 months']
+const payments = ['Cash', 'Home loan', 'Part cash + part loan', 'Not decided']
+const interests = ['High', 'Medium', 'Low']
 
 type Duplicate = { id: string; lead_no: number; name: string }
 type Project = { id: string; name: string }
@@ -30,7 +32,7 @@ export default function NewLeadPage() {
   const [form, setForm] = useState({
     name: '', phone: '', alt_phone: '', source: 'Phone', campaign: '', ad_set: '',
     ad: '', property_id: '', property_type: '', preferred_location: '', budget: '',
-    purpose: '', timeline: '', notes: '',
+    purpose: '', timeline: '', payment_preference: '', interest_level: '', notes: '',
   })
   const [projects, setProjects] = useState<Project[]>([])
   const [duplicate, setDuplicate] = useState<Duplicate | null>(null)
@@ -48,6 +50,52 @@ export default function NewLeadPage() {
 
   function set(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }))
+  }
+
+  async function merge() {
+    if (!duplicate) return
+    setSaving(true)
+    setError('')
+    const { data: old, error: e1 } = await supabase
+      .from('leads').select('*').eq('id', duplicate.id).single()
+    if (e1 || !old) {
+      setError('Could not load the existing lead: ' + (e1?.message ?? 'not found'))
+      setSaving(false)
+      return
+    }
+    const row = old as Record<string, unknown>
+    const changes: Record<string, unknown> = {}
+    const textFields = [
+      'alt_phone', 'campaign', 'ad_set', 'ad', 'property_id', 'property_type',
+      'preferred_location', 'purpose', 'timeline', 'payment_preference', 'interest_level',
+    ] as const
+    textFields.forEach((k) => {
+      const mine = form[k]
+      if (mine && !row[k]) changes[k] = mine
+    })
+    if (form.budget && !row.budget) changes.budget = Number(form.budget)
+    if (form.notes.trim()) {
+      const prev = row.notes ? String(row.notes) + '\n' : ''
+      changes.notes = prev + form.notes.trim()
+    }
+    const merged = { ...row, ...changes }
+    const { score, quality } = calculateScore(merged)
+    const { error: e2 } = await supabase
+      .from('leads').update({ ...changes, score, quality }).eq('id', duplicate.id)
+    if (e2) {
+      setError('Could not merge: ' + e2.message)
+      setSaving(false)
+      return
+    }
+    const { data: { user } } = await supabase.auth.getUser()
+    await supabase.from('activities').insert({
+      lead_id: duplicate.id,
+      type: 'Merged',
+      detail: 'Same phone number was added again (' + form.name + '). Empty fields were filled and notes were added.',
+      done_by: user?.id ?? null,
+    })
+    router.push('/leads/' + duplicate.id)
+    router.refresh()
   }
 
   async function save(force: boolean) {
@@ -96,6 +144,8 @@ export default function NewLeadPage() {
       budget,
       purpose: form.purpose || null,
       timeline: form.timeline || null,
+      payment_preference: form.payment_preference || null,
+      interest_level: form.interest_level || null,
       notes: form.notes || null,
       score,
       quality,
@@ -128,11 +178,14 @@ export default function NewLeadPage() {
           <p className="font-medium text-yellow-900">
             This phone number already exists: Lead #{duplicate.lead_no} ({duplicate.name})
           </p>
-          <div className="flex gap-2 mt-3">
-            <button onClick={() => save(true)} className="bg-yellow-600 text-white rounded-xl px-4 py-3 font-semibold">
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button disabled={saving} onClick={merge} className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold disabled:opacity-60">
+              Merge into existing lead
+            </button>
+            <button disabled={saving} onClick={() => save(true)} className="bg-yellow-600 text-white rounded-xl px-4 py-3 font-semibold disabled:opacity-60">
               Save anyway
             </button>
-            <button onClick={() => setDuplicate(null)} className="bg-white border rounded-xl px-4 py-3">
+            <button disabled={saving} onClick={() => setDuplicate(null)} className="bg-white border rounded-xl px-4 py-3">
               Cancel
             </button>
           </div>
@@ -183,6 +236,18 @@ export default function NewLeadPage() {
         </Field>
         <Field label="Budget (in rupees, numbers only)">
           <input type="number" min="0" className={input} value={form.budget} onChange={(e) => set('budget', e.target.value)} />
+        </Field>
+        <Field label="Payment preference">
+          <select className={input} value={form.payment_preference} onChange={(e) => set('payment_preference', e.target.value)}>
+            <option value="">Not sure</option>
+            {payments.map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Field>
+        <Field label="Interest level">
+          <select className={input} value={form.interest_level} onChange={(e) => set('interest_level', e.target.value)}>
+            <option value="">Not sure</option>
+            {interests.map((s) => <option key={s}>{s}</option>)}
+          </select>
         </Field>
         <Field label="Purpose">
           <select className={input} value={form.purpose} onChange={(e) => set('purpose', e.target.value)}>
