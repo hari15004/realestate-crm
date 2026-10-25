@@ -26,7 +26,7 @@ const qualities = ['Best', 'Good', 'Medium', 'Poor']
 function Bars({ title, rows, color }: { title: string; rows: Row[]; color: string }) {
   const max = Math.max(1, ...rows.map((r) => r.count))
   return (
-    <div className="bg-white rounded-2xl shadow p-4">
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20">
       <h2 className="text-lg font-semibold text-slate-800 mb-3">{title}</h2>
       {rows.length === 0 && <p className="text-slate-500">No data yet.</p>}
       <div className="space-y-2">
@@ -41,6 +41,59 @@ function Bars({ title, rows, color }: { title: string; rows: Row[]; color: strin
                 className={'h-2 rounded-full transition-all duration-700 ' + color}
                 style={{ width: (r.count / max) * 100 + '%' }}
               />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+const stageColors = ['bg-blue-500', 'bg-sky-400', 'bg-amber-400', 'bg-violet-500', 'bg-orange-500', 'bg-green-500', 'bg-red-500']
+const healthColors: Record<string, string> = { Best: 'bg-green-500', Good: 'bg-blue-500', Medium: 'bg-amber-400', Poor: 'bg-slate-500' }
+
+function PipelineBars({ rows }: { rows: Row[] }) {
+  const max = Math.max(1, ...rows.map((r) => r.count))
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20">
+      <h2 className="mb-1 text-base font-semibold text-slate-100">Sales Pipeline</h2>
+      <p className="mb-3 text-sm text-muted">Leads in each stage right now</p>
+      <div className="flex h-40 items-end gap-2">
+        {rows.map((r, i) => (
+          <div key={r.label} className="flex h-full flex-1 flex-col items-center justify-end">
+            <span className="mb-1 text-sm font-semibold text-slate-100">{r.count}</span>
+            <div className={'w-full rounded-t-md ' + stageColors[i % stageColors.length]}
+              style={{ height: Math.max(4, (r.count / max) * 100) + '%' }} />
+          </div>
+        ))}
+      </div>
+      <div className="mt-2 flex gap-2">
+        {rows.map((r) => (
+          <span key={r.label} className="flex-1 text-center text-[11px] text-muted">{r.label}</span>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function HealthBars({ rows }: { rows: Row[] }) {
+  const max = Math.max(1, ...rows.map((r) => r.count))
+  return (
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20">
+      <h2 className="mb-3 text-base font-semibold text-slate-100">Lead Health</h2>
+      <div className="space-y-3">
+        {rows.map((r) => (
+          <div key={r.label}>
+            <div className="mb-1 flex justify-between text-sm text-slate-300">
+              <span className="flex items-center gap-2">
+                <span className={'h-2.5 w-2.5 rounded-full ' + (healthColors[r.label] ?? 'bg-slate-500')} />
+                {r.label}
+              </span>
+              <span className="font-semibold text-slate-100">{r.count}</span>
+            </div>
+            <div className="h-2 rounded-full bg-surface-2">
+              <div className={'h-2 rounded-full ' + (healthColors[r.label] ?? 'bg-slate-500')}
+                style={{ width: (r.count / max) * 100 + '%' }} />
             </div>
           </div>
         ))}
@@ -85,8 +138,8 @@ export default function LeadCharts() {
 
   return (
     <div className="grid md:grid-cols-2 gap-4 mb-8">
-      <Bars title="Sales Pipeline" rows={pipeline} color="bg-blue-600" />
-      <Bars title="Lead Health" rows={health} color="bg-green-600" />
+      <PipelineBars rows={pipeline} />
+      <HealthBars rows={health} />
       <Bars title="Leads by Status" rows={byStatus} color="bg-blue-600" />
       <Bars title="Leads by Source" rows={bySource} color="bg-green-600" />
     </div>

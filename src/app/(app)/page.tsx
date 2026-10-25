@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import SmartTips from '@/components/SmartTips'
 import LeadCharts from '@/components/LeadCharts'
 import TodayPriority from '@/components/TodayPriority'
+import { QualityBadge, StatusPill } from '@/components/ui'
 
 const supabase = createClient()
 
@@ -52,14 +53,14 @@ function Card({
   label, value, href, tone,
 }: { label: string; value: number; href: string; tone: 'blue' | 'green' | 'red' | 'slate' }) {
   const color =
-    tone === 'red' ? 'text-red-600'
-    : tone === 'green' ? 'text-green-700'
-    : tone === 'blue' ? 'text-blue-700'
-    : 'text-slate-800'
+    tone === 'red' ? 'text-danger'
+    : tone === 'green' ? 'text-success'
+    : tone === 'blue' ? 'text-accent'
+    : 'text-slate-100'
   return (
-    <Link href={href} className="bg-white rounded-2xl shadow p-4 block">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={'text-3xl font-bold mt-1 ' + color}>{value}</p>
+    <Link href={href} className="ui-focus block rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className={'mt-1 text-3xl font-bold ' + color}>{value}</p>
     </Link>
   )
 }
@@ -166,35 +167,34 @@ export default function DashboardPage() {
         <>
           <TodayPriority overdue={counts.overdue} dueToday={counts.dueToday} visitsToday={counts.visitsToday} hot={counts.hot} newToday={counts.newToday} />
           <SmartTips />
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
-            <Card label="New Leads Today" value={counts.newToday} href="/leads" tone="blue" />
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
             <Card label="Active Leads" value={counts.active} href="/leads" tone="slate" />
-            <Card label="Hot Leads" value={counts.hot} href="/leads" tone="green" />
-            <Card label="Follow-ups Due Today" value={counts.dueToday} href="/followups" tone="blue" />
-            <Card label="Overdue Follow-ups" value={counts.overdue} href="/followups" tone="red" />
+            <Card label="New Today" value={counts.newToday} href="/leads" tone="blue" />
+            <Card label="Best Leads" value={counts.hot} href="/leads" tone="green" />
+            <Card label="Due Today" value={counts.dueToday} href="/followups" tone="blue" />
             <Card label="Site Visits Today" value={counts.visitsToday} href="/site-visits" tone="blue" />
-            <Card label="Bookings" value={counts.bookings} href="/leads" tone="green" />
-            <Card label="Lost Leads" value={counts.lost} href="/leads" tone="slate" />
+            <Card label="Won (Booked/Sold)" value={counts.bookings} href="/leads" tone="green" />
           </div>
 
           <LeadCharts />
-          <h2 className="text-lg font-semibold text-slate-800 mb-3">Today&apos;s Priority Leads</h2>
+          <h2 className="mb-3 text-base font-semibold text-slate-100">Today&apos;s Priority Leads</h2>
           {priority.length === 0 && <p className="text-slate-500 mb-8">No active leads yet.</p>}
           <div className="space-y-3 mb-8">
             {priority.map((l) => (
-              <div key={l.id} className="bg-white rounded-2xl shadow p-4">
+              <div key={l.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <Link href={'/leads/' + l.id} className="text-lg font-semibold text-slate-800">
+                    <Link href={'/leads/' + l.id} className="ui-focus text-base font-semibold text-slate-100">
                       {l.name}
                     </Link>
-                    <p className="text-sm text-slate-500">
-                      #{l.lead_no} · {l.phone} · {l.status}{detail(l)}
+                    <p className="mt-1 text-sm text-muted">
+                      #{l.lead_no} · {l.phone}{detail(l)}
                     </p>
                   </div>
-                  <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (qualityColor[l.quality] ?? '')}>
-                    {l.quality} ({l.score})
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <QualityBadge quality={l.quality} score={l.score} />
+                    <StatusPill status={l.status} />
+                  </div>
                 </div>
                 <a
                   href={'tel:' + l.phone}
@@ -206,16 +206,16 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          <h2 className="text-lg font-semibold text-slate-800 mb-3">Today&apos;s Follow-ups</h2>
+          <h2 className="mb-3 text-base font-semibold text-slate-100">Today&apos;s Follow-ups</h2>
           {todayList.length === 0 && <p className="text-slate-500">No follow-ups planned for today.</p>}
           <div className="space-y-3">
             {todayList.map((l) => {
               const late = l.next_followup_at && new Date(l.next_followup_at) < new Date()
               return (
-                <div key={l.id} className="bg-white rounded-2xl shadow p-4">
+                <div key={l.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <Link href={'/leads/' + l.id} className="text-lg font-semibold text-slate-800">
+                      <Link href={'/leads/' + l.id} className="ui-focus text-base font-semibold text-slate-100">
                         {l.name}
                       </Link>
                       <p className="text-sm text-slate-600">

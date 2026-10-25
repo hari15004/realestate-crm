@@ -59,13 +59,13 @@ body {
 
 /* Design system tokens (Phase 1). New names only; old classes untouched. */
 @theme {
-  --color-canvas: #0e0f12;
-  --color-surface: #16181d;
-  --color-surface-2: #1c1f26;
-  --color-line: #272b34;
+  --color-canvas: #0a1020;
+  --color-surface: #0f1a30;
+  --color-surface-2: #14233f;
+  --color-line: #1e2f52;
   --color-muted: #94a3b8;
   --color-accent: #3b82f6;
-  --color-accent-soft: #172554;
+  --color-accent-soft: #14295c;
   --color-success: #22c55e;
   --color-success-soft: #052e16;
   --color-danger: #ef4444;
