@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import NextAction from '@/components/NextAction'
+import WhatsAppTemplates from '@/components/WhatsAppTemplates'
 import { createClient } from '@/lib/supabase/client'
 import { calculateScore } from '@/lib/scoring'
 
@@ -290,6 +292,7 @@ export default function LeadDetailPage() {
         </span>
       </div>
 
+      <NextAction status={lead.status} callAttempts={lead.call_attempts} lastCallStatus={lead.last_call_status} nextFollowupAt={lead.next_followup_at} followupType={lead.followup_type} budget={lead.budget} purpose={lead.purpose} timeline={lead.timeline} lastActivityAt={(activities[0] as { created_at?: string } | undefined)?.created_at ?? null} />
       <div className="bg-white rounded-2xl shadow p-4 grid grid-cols-2 gap-4 mb-6">
         <Info label="Phone" value={lead.phone} />
         <Info label="Alternate phone" value={lead.alt_phone} />
@@ -357,6 +360,8 @@ export default function LeadDetailPage() {
         <button onClick={() => setPanel('status')} className={actionBtn}>Change Status</button>
         <button onClick={() => setPanel('visit')} className={actionBtn}>Schedule Site Visit</button>
       </div>
+
+      <WhatsAppTemplates name={lead.name} phone={lead.phone} projectName={projectName} />
 
       {error && <p className="text-red-600 mb-3">{error}</p>}
 
