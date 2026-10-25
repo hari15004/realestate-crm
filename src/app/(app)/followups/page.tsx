@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { StatusPill } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 
 const supabase = createClient()
@@ -27,75 +28,11 @@ function formatWhen(d: string, withDate: boolean) {
   )
 }
 
-function Section({
-  title,
-  items,
-  tone,
-  empty,
-  withDate,
-}: {
-  title: string
-  items: Item[]
-  tone: 'red' | 'blue' | 'slate'
-  empty: string
-  withDate: boolean
-}) {
-  const heading =
-    tone === 'red' ? 'text-red-600' : tone === 'blue' ? 'text-blue-700' : 'text-slate-700'
-  const border =
-    tone === 'red' ? 'border-red-400' : tone === 'blue' ? 'border-blue-400' : 'border-slate-300'
-
-  return (
-    <section className="mb-8">
-      <h2 className={'text-lg font-semibold mb-3 ' + heading}>
-        {title} ({items.length})
-      </h2>
-      {items.length === 0 && <p className="text-slate-500">{empty}</p>}
-      <div className="space-y-3">
-        {items.map((l) => (
-          <div key={l.id} className={'bg-white rounded-2xl shadow p-4 border-l-4 ' + border}>
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <Link href={'/leads/' + l.id} className="text-lg font-semibold text-slate-800">
-                  {l.name}
-                </Link>
-                <p className="text-sm text-slate-500">
-                  #{l.lead_no} · {l.phone} · {l.status}
-                </p>
-              </div>
-              <span className="text-sm font-medium text-slate-700 whitespace-nowrap">
-                {formatWhen(l.next_followup_at, withDate)}
-              </span>
-            </div>
-            <p className="mt-2 text-sm text-slate-600">
-              <b>{l.followup_type ?? 'Call'}</b>
-              {l.followup_note ? ' - ' + l.followup_note : ''}
-            </p>
-            <div className="grid grid-cols-2 gap-2 mt-3">
-              <a
-                href={'/leads/' + l.id + '?call=1'}
-                className="text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
-              >
-                Call
-              </a>
-              <Link
-                href={'/leads/' + l.id}
-                className="text-center bg-slate-100 text-slate-800 rounded-xl py-3 font-semibold"
-              >
-                Open Lead
-              </Link>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
-  )
-}
-
 export default function FollowupsPage() {
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [tab, setTab] = useState<'all' | 'overdue' | 'today' | 'tomorrow'>('all')
 
   useEffect(() => {
     async function load() {
@@ -132,36 +69,75 @@ export default function FollowupsPage() {
   })
   const tomorrow = items.filter((i) => new Date(i.next_followup_at) >= startTomorrow)
 
-  return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-slate-800 mb-4">Follow-ups</h1>
+  const tabs = [
+    { key: 'all', label: 'All', n: items.length },
+    { key: 'overdue', label: 'Overdue', n: overdue.length },
+    { key: 'today', label: 'Today', n: today.length },
+    { key: 'tomorrow', label: 'Tomorrow', n: tomorrow.length },
+  ] as const
+  const shown = tab === 'overdue' ? overdue : tab === 'today' ? today : tab === 'tomorrow' ? tomorrow : items
 
-      {error && <p className="text-red-600 mb-3">{error}</p>}
-      {loading && <p className="text-slate-500">Loading...</p>}
+  return (
+    <div className="max-w-4xl">
+      <h1 className="text-2xl font-bold text-slate-100">Follow-ups</h1>
+      <p className="mb-4 text-sm text-muted">Keep track of all follow-ups</p>
+
+      {error && <p className="mb-3 text-danger">{error}</p>}
+      {loading && <p className="text-muted">Loading...</p>}
 
       {!loading && !error && (
         <>
-          <Section
-            title="Overdue"
-            items={overdue}
-            tone="red"
-            empty="Nothing overdue. Great job!"
-            withDate={true}
-          />
-          <Section
-            title="Today"
-            items={today}
-            tone="blue"
-            empty="No more follow-ups for today."
-            withDate={false}
-          />
-          <Section
-            title="Tomorrow"
-            items={tomorrow}
-            tone="slate"
-            empty="No follow-ups planned for tomorrow."
-            withDate={false}
-          />
+          <div className="mb-4 flex gap-2 overflow-x-auto" role="tablist">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={
+                  'ui-focus whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors ' +
+                  (tab === t.key
+                    ? 'bg-accent text-white'
+                    : 'border border-line bg-surface text-slate-300 hover:bg-surface-2')
+                }
+              >
+                {t.label} <span className={t.key === 'overdue' && t.n > 0 ? 'text-red-300' : 'opacity-70'}>({t.n})</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface shadow-sm shadow-black/20">
+            {shown.length === 0 && <p className="p-6 text-center text-sm text-muted">No follow-ups here.</p>}
+            <ul className="divide-y divide-line">
+              {shown.map((l) => {
+                const late = new Date(l.next_followup_at) < now
+                return (
+                  <li key={l.id} className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-surface-2">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft font-semibold text-blue-300" aria-hidden="true">
+                      {(l.name || '?').charAt(0).toUpperCase()}
+                    </span>
+                    <div className="min-w-0 flex-1 basis-48">
+                      <Link href={'/leads/' + l.id} className="ui-focus block truncate text-base font-semibold text-slate-100">{l.name}</Link>
+                      <p className="truncate text-sm text-muted">
+                        #{l.lead_no} · {l.phone} · <b className="text-slate-300">{l.followup_type ?? 'Call'}</b>
+                        {l.followup_note ? ' - ' + l.followup_note : ''}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className={'whitespace-nowrap rounded-md border px-2 py-1 text-xs font-semibold ' + (late ? 'border-red-900 bg-danger-soft text-red-300' : 'border-blue-900 bg-accent-soft text-blue-300')}>
+                        {late ? 'Overdue ' : ''}{formatWhen(l.next_followup_at, late || tab !== 'today')}
+                      </span>
+                      <StatusPill status={l.status} />
+                    </div>
+                    <div className="flex gap-2">
+                      <a href={'/leads/' + l.id + '?call=1'} className="ui-focus rounded-lg bg-success px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-green-400">Call</a>
+                      <Link href={'/leads/' + l.id} className="ui-focus rounded-lg border border-line bg-surface-2 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-line">Open</Link>
+                    </div>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </>
       )}
     </div>

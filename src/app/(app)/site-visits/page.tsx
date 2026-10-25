@@ -58,6 +58,7 @@ export default function SiteVisitsPage() {
   const [busyId, setBusyId] = useState('')
   const [reschedId, setReschedId] = useState('')
   const [reschedAt, setReschedAt] = useState('')
+  const [tab, setTab] = useState<'all' | 'missed' | 'today' | 'upcoming' | 'closed'>('all')
 
   const load = useCallback(async () => {
     const { data, error: err } = await supabase
@@ -153,126 +154,127 @@ export default function SiteVisitsPage() {
     .sort((a, b) => b.visit_at.localeCompare(a.visit_at))
     .slice(0, 20)
 
-  function renderGroup(
-    title: string,
-    list: Visit[],
-    tone: 'red' | 'blue' | 'slate' | 'green',
-    empty: string
-  ) {
-    const heading =
-      tone === 'red' ? 'text-red-600'
-      : tone === 'blue' ? 'text-blue-700'
-      : tone === 'green' ? 'text-green-700'
-      : 'text-slate-700'
-    const border =
-      tone === 'red' ? 'border-red-400'
-      : tone === 'blue' ? 'border-blue-400'
-      : tone === 'green' ? 'border-green-400'
-      : 'border-slate-300'
-
-    return (
-      <section className="mb-8">
-        <h2 className={'text-lg font-semibold mb-3 ' + heading}>
-          {title} ({list.length})
-        </h2>
-        {list.length === 0 && <p className="text-slate-500">{empty}</p>}
-        <div className="space-y-3">
-          {list.map((v) => {
-            const isActive = activeStatuses.includes(v.status)
-            const busy = busyId === v.id
-            return (
-              <div key={v.id} className={'bg-white rounded-2xl shadow p-4 border-l-4 ' + border}>
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link href={'/leads/' + v.lead_id} className="text-lg font-semibold text-slate-800">
-                      {v.leads?.name ?? 'Unknown lead'}
-                    </Link>
-                    <p className="text-sm text-slate-500">
-                      #{v.leads?.lead_no} · {v.leads?.phone}
-                    </p>
-                  </div>
-                  <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (statusColor[v.status] ?? '')}>
-                    {v.status}
-                  </span>
-                </div>
-
-                <div className="mt-2 text-sm text-slate-600 space-y-1">
-                  <p>When: <b>{formatDate(v.visit_at)}</b></p>
-                  <p>Project: <b>{v.properties?.name ?? '-'}</b></p>
-                  <p>Assigned to: <b>{v.profiles?.full_name ?? 'Unassigned'}</b></p>
-                  {v.notes && <p>Notes: {v.notes}</p>}
-                </div>
-
-                {isActive && (
-                  <div className="grid grid-cols-3 gap-2 mt-3">
-                    <button
-                      disabled={busy}
-                      onClick={() => updateVisit(v, 'Completed')}
-                      className="bg-green-600 text-white rounded-xl py-3 font-semibold disabled:opacity-60"
-                    >
-                      Completed
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => {
-                        setReschedId(reschedId === v.id ? '' : v.id)
-                        setReschedAt('')
-                      }}
-                      className="bg-slate-100 text-slate-800 rounded-xl py-3 font-semibold disabled:opacity-60"
-                    >
-                      Reschedule
-                    </button>
-                    <button
-                      disabled={busy}
-                      onClick={() => updateVisit(v, 'Cancelled')}
-                      className="bg-slate-100 text-red-600 rounded-xl py-3 font-semibold disabled:opacity-60"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-
-                {isActive && reschedId === v.id && (
-                  <div className="mt-3 space-y-2">
-                    <input
-                      type="datetime-local"
-                      value={reschedAt}
-                      onChange={(e) => setReschedAt(e.target.value)}
-                      className="w-full border rounded-xl px-4 py-3 text-base bg-white"
-                    />
-                    <button
-                      disabled={busy || !reschedAt}
-                      onClick={() => updateVisit(v, 'Rescheduled', new Date(reschedAt).toISOString())}
-                      className="w-full bg-blue-600 text-white rounded-xl py-3 font-semibold disabled:opacity-60"
-                    >
-                      {busy ? 'Saving...' : 'Save New Time'}
-                    </button>
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </section>
-    )
-  }
+  const tabs = [
+    { key: 'all', label: 'All', list: [...missed, ...today, ...upcoming] },
+    { key: 'missed', label: 'Missed', list: missed },
+    { key: 'today', label: 'Today', list: today },
+    { key: 'upcoming', label: 'Upcoming', list: upcoming },
+    { key: 'closed', label: 'Completed / Cancelled', list: closed },
+  ] as const
+  const shown = (tabs.find((t) => t.key === tab) ?? tabs[0]).list
 
   return (
-    <div className="max-w-2xl">
-      <h1 className="text-2xl font-bold text-slate-800 mb-4">Site Visits</h1>
-      <p className="text-slate-500 mb-4">
-        To plan a new visit, open a lead and tap Schedule Site Visit.
-      </p>
+    <div className="max-w-4xl">
+      <h1 className="text-2xl font-bold text-slate-100">Site Visits</h1>
+      <p className="mb-4 text-sm text-muted">To plan a new visit, open a lead and tap Schedule Site Visit.</p>
 
-      {error && <p className="text-red-600 mb-3">{error}</p>}
-      {loading && <p className="text-slate-500">Loading...</p>}
+      {error && <p className="mb-3 text-danger">{error}</p>}
+      {loading && <p className="text-muted">Loading...</p>}
 
       {!loading && (
         <>
-          {renderGroup('Missed - please update', missed, 'red', 'No missed visits.')}
-          {renderGroup('Today', today, 'blue', 'No site visits today.')}
-          {renderGroup('Upcoming', upcoming, 'slate', 'No upcoming site visits.')}
-          {renderGroup('Completed / Cancelled', closed, 'green', 'Nothing here yet.')}
+          <div className="mb-4 flex gap-2 overflow-x-auto" role="tablist">
+            {tabs.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={
+                  'ui-focus whitespace-nowrap rounded-lg px-4 py-2 text-sm font-semibold transition-colors ' +
+                  (tab === t.key
+                    ? 'bg-accent text-white'
+                    : 'border border-line bg-surface text-slate-300 hover:bg-surface-2')
+                }
+              >
+                {t.label} <span className={t.key === 'missed' && t.list.length > 0 ? 'text-red-300' : 'opacity-70'}>({t.list.length})</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-line bg-surface shadow-sm shadow-black/20">
+            {shown.length === 0 && <p className="p-6 text-center text-sm text-muted">No site visits here.</p>}
+            <ul className="divide-y divide-line">
+              {shown.map((v) => {
+                const isActive = activeStatuses.includes(v.status)
+                const busy = busyId === v.id
+                const isMissed = isActive && new Date(v.visit_at) < startToday
+                return (
+                  <li key={v.id} className="p-4 transition-colors hover:bg-surface-2">
+                    <div className="flex flex-wrap items-center gap-3">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft font-semibold text-blue-300" aria-hidden="true">
+                        {(v.leads?.name || '?').charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0 flex-1 basis-48">
+                        <Link href={'/leads/' + v.lead_id} className="ui-focus block truncate text-base font-semibold text-slate-100">
+                          {v.leads?.name ?? 'Unknown lead'}
+                        </Link>
+                        <p className="truncate text-sm text-muted">
+                          #{v.leads?.lead_no} · {v.leads?.phone} · {v.properties?.name ?? 'No project'} · {v.profiles?.full_name ?? 'Unassigned'}
+                        </p>
+                        {v.notes && <p className="truncate text-xs text-muted">Notes: {v.notes}</p>}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={'whitespace-nowrap rounded-md border px-2 py-1 text-xs font-semibold ' + (isMissed ? 'border-red-900 bg-danger-soft text-red-300' : 'border-blue-900 bg-accent-soft text-blue-300')}>
+                          {formatDate(v.visit_at)}
+                        </span>
+                        <span className={'rounded-full border px-2.5 py-0.5 text-xs font-medium ' + (v.status === 'Completed' ? 'border-green-900 bg-success-soft text-green-300' : v.status === 'Cancelled' ? 'border-line bg-surface-2 text-slate-300' : v.status === 'Rescheduled' ? 'border-amber-900 bg-warn-soft text-amber-300' : 'border-blue-900 bg-accent-soft text-blue-300')}>
+                          {v.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isActive && (
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        <button
+                          disabled={busy}
+                          onClick={() => updateVisit(v, 'Completed')}
+                          className="ui-focus rounded-lg bg-success px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-green-400 disabled:opacity-60"
+                        >
+                          Completed
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => {
+                            setReschedId(reschedId === v.id ? '' : v.id)
+                            setReschedAt('')
+                          }}
+                          className="ui-focus rounded-lg border border-line bg-surface-2 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-line disabled:opacity-60"
+                        >
+                          Reschedule
+                        </button>
+                        <button
+                          disabled={busy}
+                          onClick={() => updateVisit(v, 'Cancelled')}
+                          className="ui-focus rounded-lg border border-line bg-surface-2 px-4 py-2 text-sm font-semibold text-red-400 transition-colors hover:bg-line disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    )}
+
+                    {isActive && reschedId === v.id && (
+                      <div className="mt-3 space-y-2">
+                        <input
+                          type="datetime-local"
+                          value={reschedAt}
+                          onChange={(e) => setReschedAt(e.target.value)}
+                          className="ui-focus w-full rounded-lg border border-line bg-surface-2 px-4 py-3 text-base text-slate-100"
+                        />
+                        <button
+                          disabled={busy || !reschedAt}
+                          onClick={() => updateVisit(v, 'Rescheduled', new Date(reschedAt).toISOString())}
+                          className="ui-focus w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
+                        >
+                          {busy ? 'Saving...' : 'Save New Time'}
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
         </>
       )}
     </div>

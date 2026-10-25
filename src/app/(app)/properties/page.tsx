@@ -139,9 +139,9 @@ export default function PropertiesPage() {
   }
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-slate-800">Properties</h1>
+        <h1 className="text-2xl font-bold text-slate-100">Properties</h1>
         {isAdmin && !showForm && (
           <button onClick={startAdd} className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold">
             + Add Project
@@ -198,30 +198,33 @@ export default function PropertiesPage() {
       {loading && <p className="text-slate-500">Loading...</p>}
       {!loading && items.length === 0 && <p className="text-slate-500">No projects yet.</p>}
 
-      <div className="space-y-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((p) => (
-          <div key={p.id} className="bg-white rounded-2xl shadow p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-lg font-semibold text-slate-800">{p.name}</p>
-                <p className="text-sm text-slate-500">
-                  {p.property_type ?? '-'} · {p.location ?? '-'}
-                </p>
+          <div key={p.id} className="flex flex-col overflow-hidden rounded-xl border border-line bg-surface shadow-sm shadow-black/20 transition hover:-translate-y-0.5 hover:bg-surface-2">
+            <div className="flex h-24 items-center justify-center bg-accent-soft text-blue-300">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="h-10 w-10" aria-hidden="true">
+                <path d="M3 21h18M5 21V7l7-4 7 4v14M9 9h1M9 13h1M14 9h1M14 13h1" />
+              </svg>
+            </div>
+            <div className="flex flex-1 flex-col p-4">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-base font-semibold text-slate-100">{p.name}</p>
+                <span className={'whitespace-nowrap rounded-full border px-2.5 py-0.5 text-xs font-medium ' + (p.status === 'Available' ? 'border-green-900 bg-success-soft text-green-300' : 'border-line bg-surface-2 text-slate-300')}>
+                  {p.status}
+                </span>
               </div>
-              <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (statusColor[p.status] ?? '')}>
-                {p.status}
-              </span>
+              <p className="mt-1 text-sm text-muted">{p.property_type ?? '-'} · {p.location ?? '-'}</p>
+              <div className="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-sm text-slate-300">
+                <span>From <b className="text-slate-100">{formatPrice(p.starting_price)}</b></span>
+                <span>Units <b className="text-slate-100">{p.available_units ?? '-'}</b></span>
+              </div>
+              {isAdmin && (
+                <button onClick={() => startEdit(p)}
+                  className="ui-focus mt-4 w-full rounded-lg border border-line bg-surface-2 px-4 py-2 text-sm font-semibold text-slate-100 transition-colors hover:bg-line">
+                  Edit
+                </button>
+              )}
             </div>
-            <div className="flex flex-wrap gap-x-6 gap-y-1 mt-3 text-sm text-slate-600">
-              <span>Starting price: <b>{formatPrice(p.starting_price)}</b></span>
-              <span>Available units: <b>{p.available_units ?? '-'}</b></span>
-            </div>
-            {isAdmin && (
-              <button onClick={() => startEdit(p)}
-                className="mt-3 w-full bg-slate-100 text-slate-800 rounded-xl py-3 font-semibold">
-                Edit
-              </button>
-            )}
           </div>
         ))}
       </div>

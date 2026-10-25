@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { QualityBadge, StatusPill } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 
 const supabase = createClient()
@@ -48,8 +49,8 @@ function formatDate(d: string) {
   })
 }
 
-const select = 'border rounded-xl px-3 py-3 text-base bg-white'
-const small = 'w-full border rounded-xl px-3 py-3 text-base bg-white'
+const select = 'ui-focus rounded-lg border border-line bg-surface px-3 py-2.5 text-sm text-slate-100'
+const small = 'ui-focus w-full rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-sm text-slate-100'
 
 export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([])
@@ -134,10 +135,10 @@ export default function LeadsPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-slate-800">Leads</h1>
+        <h1 className="text-2xl font-bold text-slate-100">Leads</h1>
         <Link
           href="/leads/new"
-          className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold"
+          className="ui-focus rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
         >
           + Add Lead
         </Link>
@@ -147,7 +148,7 @@ export default function LeadsPage() {
         placeholder="Search by name, phone or lead number"
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        className="w-full border rounded-xl px-4 py-3 text-base bg-white mb-3"
+        className="ui-focus mb-3 w-full rounded-lg border border-line bg-surface px-4 py-3 text-base text-slate-100 placeholder:text-muted"
       />
 
       <div className="flex flex-wrap gap-2 mb-3">
@@ -166,14 +167,14 @@ export default function LeadsPage() {
       </div>
 
       <div className="flex gap-4 mb-4">
-        <button onClick={() => setShowMore(!showMore)} className="text-blue-600 font-semibold">
+        <button onClick={() => setShowMore(!showMore)} className="ui-focus text-sm font-semibold text-accent">
           {showMore ? 'Hide more filters' : 'More filters'}
         </button>
-        <button onClick={clearAll} className="text-slate-500">Clear all</button>
+        <button onClick={clearAll} className="ui-focus text-sm text-muted hover:text-slate-100">Clear all</button>
       </div>
 
       {showMore && (
-        <div className="bg-white rounded-2xl shadow p-4 mb-4 grid grid-cols-2 gap-3">
+        <div className="mb-4 grid grid-cols-2 gap-3 rounded-xl border border-line bg-surface p-4">
           <div className="col-span-2">
             <p className="text-xs text-slate-500 mb-1">Campaign name contains</p>
             <input className={small} value={campaign} onChange={(e) => setCampaign(e.target.value)} />
@@ -217,26 +218,25 @@ export default function LeadsPage() {
         {leads.map((l) => {
           const overdue = l.next_followup_at && new Date(l.next_followup_at).getTime() < now
           return (
-            <div key={l.id} className="bg-white rounded-2xl shadow p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Link href={'/leads/' + l.id} className="text-lg font-semibold text-slate-800">
-                    {l.name}
-                  </Link>
-                  <p className="text-sm text-slate-500">
-                    #{l.lead_no} · {l.source} · {l.phone}
-                  </p>
-                </div>
-                <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (qualityColor[l.quality] ?? '')}>
-                  {l.quality} ({l.score})
+            <div key={l.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft font-semibold text-blue-300" aria-hidden="true">
+                  {(l.name || '?').charAt(0).toUpperCase()}
                 </span>
+                <div className="min-w-0 flex-1">
+                  <Link href={'/leads/' + l.id} className="ui-focus block truncate text-base font-semibold text-slate-100">{l.name}</Link>
+                  <p className="truncate text-sm text-muted">#{l.lead_no} · {l.source} · {l.phone}</p>
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <QualityBadge quality={l.quality} score={l.score} />
+                  <StatusPill status={l.status} />
+                </div>
               </div>
 
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 text-sm text-slate-600">
-                <span>Status: <b>{l.status}</b></span>
-                <span>Budget: <b>{formatBudget(l.budget)}</b></span>
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-300">
+                <span>Budget: <b className="text-slate-100">{formatBudget(l.budget)}</b></span>
                 {l.next_followup_at && (
-                  <span className={overdue ? 'text-red-600 font-semibold' : ''}>
+                  <span className={overdue ? 'font-semibold text-danger' : ''}>
                     {overdue ? 'Overdue: ' : 'Follow-up: '}
                     {formatDate(l.next_followup_at)}
                   </span>
@@ -246,7 +246,7 @@ export default function LeadsPage() {
               <div className="mt-3 flex gap-2">
                 <a
                   href={'/leads/' + l.id + '?call=1'}
-                  className="flex-1 block text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
+                  className="ui-focus flex-1 rounded-lg bg-success px-4 py-2.5 text-center text-sm font-semibold text-black transition-colors hover:bg-green-400"
                 >
                   Call
                 </a>
@@ -254,7 +254,7 @@ export default function LeadsPage() {
                   href={'https://wa.me/91' + l.phone}
                   target="_blank"
                   rel="noreferrer"
-                  className="flex-1 block text-center bg-emerald-800 text-white rounded-xl py-3 font-semibold"
+                  className="ui-focus flex-1 rounded-lg border border-line bg-surface-2 px-4 py-2.5 text-center text-sm font-semibold text-slate-100 transition-colors hover:bg-line"
                 >
                   WhatsApp
                 </a>

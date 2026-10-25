@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import DataTools from '@/components/DataTools'
 
 const supabase = createClient()
 
@@ -131,46 +132,54 @@ export default function ReportsPage() {
   }
 
   return (
-    <div className="max-w-xl">
-      <div className="flex items-start justify-between gap-3 mb-4">
+    <div className="max-w-5xl">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-slate-800">Daily Report</h1>
-          <p className="text-slate-500">{dateText}</p>
+          <h1 className="text-2xl font-bold text-slate-100">Daily Report</h1>
+          <p className="text-sm text-muted">{dateText}</p>
         </div>
         <button
           onClick={copyReport}
           disabled={!sections}
-          className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold disabled:opacity-60"
+          className="ui-focus rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500 disabled:opacity-60"
         >
           {copied ? 'Copied!' : 'Copy Report'}
         </button>
       </div>
 
-      {error && <p className="text-red-600 mb-3">{error}</p>}
-      {!sections && !error && <p className="text-slate-500">Loading...</p>}
+      {error && <p className="mb-3 text-danger">{error}</p>}
+      {!sections && !error && <p className="text-muted">Loading...</p>}
 
-      <div className="space-y-4">
-        {sections?.map((s) => (
-          <div key={s.title} className="bg-white rounded-2xl shadow p-4">
-            <h2 className="font-semibold text-slate-800 mb-2">{s.title}</h2>
-            <div className="divide-y">
-              {s.rows.map((r) => (
-                <div key={r.label} className="flex items-center justify-between py-2">
-                  <span className="text-slate-600">{r.label}</span>
-                  <span
-                    className={
-                      'text-lg font-bold ' +
-                      (r.warn && r.value > 0 ? 'text-red-600' : 'text-slate-800')
-                    }
-                  >
-                    {r.value}
-                  </span>
-                </div>
-              ))}
+      <div className="grid gap-4 md:grid-cols-2">
+        {sections?.map((s) => {
+          const max = Math.max(1, ...s.rows.map((r) => r.value))
+          return (
+            <div key={s.title} className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20">
+              <h2 className="mb-3 text-base font-semibold text-slate-100">{s.title}</h2>
+              <div className="space-y-3">
+                {s.rows.map((r) => {
+                  const bad = r.warn && r.value > 0
+                  return (
+                    <div key={r.label}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <span className="text-slate-300">{r.label}</span>
+                        <span className={'text-base font-bold ' + (bad ? 'text-danger' : 'text-slate-100')}>{r.value}</span>
+                      </div>
+                      <div className="h-1.5 rounded-full bg-surface-2">
+                        <div
+                          className={'h-1.5 rounded-full ' + (bad ? 'bg-danger' : 'bg-accent')}
+                          style={{ width: (r.value / max) * 100 + '%' }}
+                        />
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
+      <DataTools />
     </div>
   )
 }
