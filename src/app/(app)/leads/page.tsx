@@ -245,7 +245,7 @@ export default function LeadsPage() {
 
               <div className="mt-3 flex gap-2">
                 <a
-                  href={'tel:' + l.phone}
+                  href={'/leads/' + l.id + '?call=1'}
                   className="flex-1 block text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
                 >
                   Call

@@ -130,6 +130,10 @@ export default function LeadDetailPage() {
       return
     }
     setLead(l.data as Lead)
+    if (new URLSearchParams(window.location.search).get('call') === '1') {
+      setPanel('call')
+      window.history.replaceState(null, '', window.location.pathname)
+    }
     const pid = (l.data as Lead).property_id
     if (pid) {
       const { data: pr } = await supabase.from('properties').select('name').eq('id', pid).single()

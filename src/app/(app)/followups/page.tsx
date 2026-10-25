@@ -73,7 +73,7 @@ function Section({
             </p>
             <div className="grid grid-cols-2 gap-2 mt-3">
               <a
-                href={'tel:' + l.phone}
+                href={'/leads/' + l.id + '?call=1'}
                 className="text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
               >
                 Call

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import SmartTips from '@/components/SmartTips'
 import LeadCharts from '@/components/LeadCharts'
+import RecentActivity from '@/components/RecentActivity'
 import TodayPriority from '@/components/TodayPriority'
 import { QualityBadge, StatusPill } from '@/components/ui'
 
@@ -49,6 +50,15 @@ type LeadRow = {
 const cols =
   'id, lead_no, name, phone, status, quality, score, next_followup_at, followup_type, followup_note, budget, property_id, last_call_status'
 
+const kpiIcons: Record<string, string> = {
+  'Active Leads': 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
+  'New Today': 'M12 5v14M5 12h14',
+  'Best Leads': 'M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z',
+  'Due Today': 'M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 1.9.7 2.8a2 2 0 0 1-.5 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.8.7a2 2 0 0 1 1.7 2z',
+  'Site Visits Today': 'M3 10.5L12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z',
+  'Won (Booked/Sold)': 'M20 6L9 17l-5-5',
+}
+
 function Card({
   label, value, href, tone,
 }: { label: string; value: number; href: string; tone: 'blue' | 'green' | 'red' | 'slate' }) {
@@ -58,9 +68,16 @@ function Card({
     : tone === 'blue' ? 'text-accent'
     : 'text-slate-100'
   return (
-    <Link href={href} className="ui-focus block rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
-      <p className={'mt-1 text-3xl font-bold ' + color}>{value}</p>
+    <Link href={href} className="ui-focus group flex items-center gap-3 rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition hover:-translate-y-0.5 hover:bg-surface-2">
+      <span className={'flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-surface-2 ' + color}>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true">
+          <path d={kpiIcons[label] ?? 'M12 5v14M5 12h14'} />
+        </svg>
+      </span>
+      <span>
+        <span className="block text-xs font-medium uppercase tracking-wide text-muted">{label}</span>
+        <span className={'block text-2xl font-bold ' + color}>{value}</span>
+      </span>
     </Link>
   )
 }
@@ -177,34 +194,32 @@ export default function DashboardPage() {
           </div>
 
           <LeadCharts />
-          <h2 className="mb-3 text-base font-semibold text-slate-100">Today&apos;s Priority Leads</h2>
-          {priority.length === 0 && <p className="text-slate-500 mb-8">No active leads yet.</p>}
-          <div className="space-y-3 mb-8">
-            {priority.map((l) => (
-              <div key={l.id} className="rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20 transition-colors hover:bg-surface-2">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <Link href={'/leads/' + l.id} className="ui-focus text-base font-semibold text-slate-100">
-                      {l.name}
-                    </Link>
-                    <p className="mt-1 text-sm text-muted">
-                      #{l.lead_no} · {l.phone}{detail(l)}
-                    </p>
+          <RecentActivity />
+          <section className="mb-8 rounded-xl border border-line bg-surface shadow-sm shadow-black/20" aria-label="Top priority leads">
+            <div className="border-b border-line p-4">
+              <h2 className="text-base font-semibold text-slate-100">Top Priority Leads</h2>
+              <p className="text-sm text-muted">Highest score active leads</p>
+            </div>
+            {priority.length === 0 && <p className="p-4 text-sm text-muted">No active leads yet.</p>}
+            <ul className="divide-y divide-line">
+              {priority.map((l) => (
+                <li key={l.id} className="flex flex-wrap items-center gap-3 p-4 transition-colors hover:bg-surface-2">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent-soft font-semibold text-blue-300" aria-hidden="true">
+                    {(l.name || '?').charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1 basis-48">
+                    <Link href={'/leads/' + l.id} className="ui-focus block truncate text-base font-semibold text-slate-100">{l.name}</Link>
+                    <p className="truncate text-sm text-muted">#{l.lead_no} · {l.phone}{detail(l)}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1">
+                  <div className="flex items-center gap-2">
                     <QualityBadge quality={l.quality} score={l.score} />
                     <StatusPill status={l.status} />
                   </div>
-                </div>
-                <a
-                  href={'tel:' + l.phone}
-                  className="mt-3 block text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
-                >
-                  Call
-                </a>
-              </div>
-            ))}
-          </div>
+                  <a href={'/leads/' + l.id + '?call=1'} className="ui-focus inline-flex items-center justify-center rounded-lg bg-success px-4 py-2 text-sm font-semibold text-black transition-colors hover:bg-green-400">Call</a>
+                </li>
+              ))}
+            </ul>
+          </section>
 
           <h2 className="mb-3 text-base font-semibold text-slate-100">Today&apos;s Follow-ups</h2>
           {todayList.length === 0 && <p className="text-slate-500">No follow-ups planned for today.</p>}
@@ -231,7 +246,7 @@ export default function DashboardPage() {
                     )}
                   </div>
                   <a
-                    href={'tel:' + l.phone}
+                    href={'/leads/' + l.id + '?call=1'}
                     className="mt-3 block text-center bg-green-600 text-white rounded-xl py-3 font-semibold"
                   >
                     Call
