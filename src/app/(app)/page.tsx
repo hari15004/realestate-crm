@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import SmartTips from '@/components/SmartTips'
 import LeadCharts from '@/components/LeadCharts'
+import TodayPriority from '@/components/TodayPriority'
 
 const supabase = createClient()
 
@@ -132,7 +133,7 @@ export default function DashboardPage() {
   return (
     <div className="max-w-4xl">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
+        <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Dashboard</span>
         <Link href="/leads/new" className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold">
           + Add Lead
         </Link>
@@ -143,6 +144,7 @@ export default function DashboardPage() {
 
       {counts && (
         <>
+          <TodayPriority overdue={counts.overdue} dueToday={counts.dueToday} visitsToday={counts.visitsToday} hot={counts.hot} newToday={counts.newToday} />
           <SmartTips />
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8">
             <Card label="New Leads Today" value={counts.newToday} href="/leads" tone="blue" />

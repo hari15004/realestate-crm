@@ -12,6 +12,17 @@ const statusOrder = [
 
 type Row = { label: string; count: number }
 
+const stages: { label: string; statuses: string[] }[] = [
+  { label: 'New', statuses: ['New'] },
+  { label: 'Contacted', statuses: ['Contacted'] },
+  { label: 'Interested', statuses: ['Interested', 'Follow-up'] },
+  { label: 'Site Visit', statuses: ['Site Visit Planned', 'Site Visit Done'] },
+  { label: 'Negotiation', statuses: ['Negotiation'] },
+  { label: 'Won', statuses: ['Booked', 'Sold'] },
+  { label: 'Lost', statuses: ['Not Interested', 'Lost'] },
+]
+const qualities = ['Best', 'Good', 'Medium', 'Poor']
+
 function Bars({ title, rows, color }: { title: string; rows: Row[]; color: string }) {
   const max = Math.max(1, ...rows.map((r) => r.count))
   return (
@@ -41,18 +52,25 @@ function Bars({ title, rows, color }: { title: string; rows: Row[]; color: strin
 export default function LeadCharts() {
   const [byStatus, setByStatus] = useState<Row[]>([])
   const [bySource, setBySource] = useState<Row[]>([])
+  const [pipeline, setPipeline] = useState<Row[]>([])
+  const [health, setHealth] = useState<Row[]>([])
 
   useEffect(() => {
     async function load() {
-      const { data } = await supabase.from('leads').select('status, source').limit(5000)
+      const { data } = await supabase.from('leads').select('status, source, quality').limit(5000)
       const st: Record<string, number> = {}
       const so: Record<string, number> = {}
+      const ql: Record<string, number> = {}
       ;(data ?? []).forEach((l) => {
         const s = l.status as string
         const c = (l.source as string) || 'Other'
         st[s] = (st[s] ?? 0) + 1
         so[c] = (so[c] ?? 0) + 1
+        const q = (l.quality as string) || 'Poor'
+        ql[q] = (ql[q] ?? 0) + 1
       })
+      setPipeline(stages.map((g) => ({ label: g.label, count: g.statuses.reduce((n, x) => n + (st[x] ?? 0), 0) })))
+      setHealth(qualities.map((q) => ({ label: q, count: ql[q] ?? 0 })))
       setByStatus(
         statusOrder.filter((s) => st[s]).map((s) => ({ label: s, count: st[s] }))
       )
@@ -67,6 +85,8 @@ export default function LeadCharts() {
 
   return (
     <div className="grid md:grid-cols-2 gap-4 mb-8">
+      <Bars title="Sales Pipeline" rows={pipeline} color="bg-blue-600" />
+      <Bars title="Lead Health" rows={health} color="bg-green-600" />
       <Bars title="Leads by Status" rows={byStatus} color="bg-blue-600" />
       <Bars title="Leads by Source" rows={bySource} color="bg-green-600" />
     </div>
