@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import NextAction from '@/components/NextAction'
 import WhatsAppTemplates from '@/components/WhatsAppTemplates'
+import CallHelper from '@/components/CallHelper'
 import { createClient } from '@/lib/supabase/client'
 import { calculateScore } from '@/lib/scoring'
 
@@ -348,13 +349,12 @@ export default function LeadDetailPage() {
 
       <h2 className="text-lg font-semibold text-slate-800 mb-2">Actions</h2>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-        <a
-          href={'tel:' + lead.phone}
+        <button
           onClick={() => setPanel('call')}
           className="rounded-xl py-3 px-2 text-base font-semibold text-center bg-green-600 text-white"
         >
           Call
-        </a>
+        </button>
         <button onClick={() => setPanel('note')} className={actionBtn}>Add Note</button>
         <button onClick={() => setPanel('followup')} className={actionBtn}>Set Follow-up</button>
         <button onClick={() => setPanel('status')} className={actionBtn}>Change Status</button>
@@ -366,7 +366,10 @@ export default function LeadDetailPage() {
       {error && <p className="text-red-600 mb-3">{error}</p>}
 
       {panel === 'call' && (
-        <div className="bg-white rounded-2xl shadow p-4 space-y-3">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-white p-4 space-y-3">
+          <button onClick={() => setPanel(null)} className="w-full rounded-xl py-3 text-base font-semibold bg-slate-100 text-slate-800">Close</button>
+          <CallHelper name={lead.name} projectName={projectName} budget={lead.budget} purpose={lead.purpose} timeline={lead.timeline} paymentPreference={lead.payment_preference} source={lead.source} campaign={lead.campaign} />
+          <a href={'tel:' + lead.phone} className="block rounded-xl py-3 px-2 text-base font-semibold text-center bg-green-600 text-white">Start Call ({lead.phone})</a>
           <p className="font-semibold text-slate-800">How did the call go?</p>
           <select className={box} value={callResult} onChange={(e) => setCallResult(e.target.value)}>
             {callResults.map((r) => <option key={r}>{r}</option>)}
