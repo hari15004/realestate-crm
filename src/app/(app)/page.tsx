@@ -40,10 +40,13 @@ type LeadRow = {
   next_followup_at: string | null
   followup_type: string | null
   followup_note: string | null
+  budget: number | null
+  property_id: string | null
+  last_call_status: string | null
 }
 
 const cols =
-  'id, lead_no, name, phone, status, quality, score, next_followup_at, followup_type, followup_note'
+  'id, lead_no, name, phone, status, quality, score, next_followup_at, followup_type, followup_note, budget, property_id, last_call_status'
 
 function Card({
   label, value, href, tone,
@@ -70,6 +73,14 @@ export default function DashboardPage() {
   const [priority, setPriority] = useState<LeadRow[]>([])
   const [todayList, setTodayList] = useState<LeadRow[]>([])
   const [error, setError] = useState('')
+  const [projects, setProjects] = useState<Record<string, string>>({})
+  const detail = (l: LeadRow) => {
+    const parts: string[] = []
+    if (l.property_id && projects[l.property_id]) parts.push(projects[l.property_id])
+    if (l.budget) parts.push('Budget ' + (l.budget >= 10000000 ? (l.budget / 10000000).toFixed(2) + ' Cr' : (l.budget / 100000).toFixed(1) + ' L'))
+    if (l.last_call_status) parts.push('Last call: ' + l.last_call_status)
+    return parts.length ? ' · ' + parts.join(' · ') : ''
+  }
 
   useEffect(() => {
     async function load() {
@@ -124,6 +135,10 @@ export default function DashboardPage() {
         bookings: g.count ?? 0,
         lost: h.count ?? 0,
       })
+      const { data: pr } = await supabase.from('properties').select('id, name')
+      const m: Record<string, string> = {}
+      ;(pr ?? []).forEach((x) => { m[x.id as string] = x.name as string })
+      setProjects(m)
       setPriority((p.data ?? []) as LeadRow[])
       setTodayList((t.data ?? []) as LeadRow[])
     }
@@ -134,9 +149,14 @@ export default function DashboardPage() {
     <div className="max-w-4xl">
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold uppercase tracking-wide text-slate-500">Dashboard</span>
-        <Link href="/leads/new" className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold">
-          + Add Lead
-        </Link>
+        <div className="flex gap-2">
+          <Link href="/leads/new" className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold">
+            + Add Lead
+          </Link>
+          <Link href="/settings" className="bg-slate-100 text-slate-800 rounded-xl px-4 py-3 font-semibold">
+            Import Leads
+          </Link>
+        </div>
       </div>
 
       {error && <p className="text-red-600 mb-3">{error}</p>}
@@ -169,7 +189,7 @@ export default function DashboardPage() {
                       {l.name}
                     </Link>
                     <p className="text-sm text-slate-500">
-                      #{l.lead_no} · {l.phone} · {l.status}
+                      #{l.lead_no} · {l.phone} · {l.status}{detail(l)}
                     </p>
                   </div>
                   <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (qualityColor[l.quality] ?? '')}>
