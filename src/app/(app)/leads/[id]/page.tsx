@@ -6,6 +6,7 @@ import Link from 'next/link'
 import NextAction from '@/components/NextAction'
 import WhatsAppTemplates from '@/components/WhatsAppTemplates'
 import CallHelper from '@/components/CallHelper'
+import { QualityBadge, StatusPill } from '@/components/ui'
 import { createClient } from '@/lib/supabase/client'
 import { calculateScore } from '@/lib/scoring'
 
@@ -280,92 +281,156 @@ export default function LeadDetailPage() {
   }
 
   const overdue = lead.next_followup_at && new Date(lead.next_followup_at).getTime() < Date.now()
-  const actionBtn = 'rounded-xl py-3 px-2 text-base font-semibold text-center bg-slate-100 text-slate-800'
+  const goPanel = (x: Panel) => {
+    setPanel(x)
+    if (x !== 'call') setTimeout(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' }), 80)
+  }
+  const stages = [
+    { label: 'New', s: ['New'] },
+    { label: 'Contacted', s: ['Contacted'] },
+    { label: 'Interested', s: ['Interested', 'Follow-up'] },
+    { label: 'Site Visit', s: ['Site Visit Planned', 'Site Visit Done'] },
+    { label: 'Negotiation', s: ['Negotiation'] },
+    { label: 'Won', s: ['Booked', 'Sold'] },
+  ]
+  const isLost = lead.status === 'Not Interested' || lead.status === 'Lost'
+  const curIdx = stages.findIndex((g) => g.s.includes(lead.status))
+  const lastAt = (activities[0] as { created_at?: string } | undefined)?.created_at ?? null
+  const daysAgo = lastAt ? Math.floor((Date.now() - new Date(lastAt).getTime()) / 86400000) : null
+  const lastText = daysAgo === null ? 'No contact yet' : daysAgo === 0 ? 'Today' : daysAgo + ' day' + (daysAgo === 1 ? '' : 's') + ' ago'
+  const row = (label: string, value: React.ReactNode) => (
+    <div className="min-w-0">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="truncate text-sm font-medium text-slate-100">{value || '-'}</p>
+    </div>
+  )
+  const qBtn = 'ui-focus rounded-lg border border-line bg-surface-2 px-3 py-2.5 text-center text-sm font-semibold text-slate-100 transition-colors hover:bg-line'
+  const box2 = 'rounded-xl border border-line bg-surface p-4 shadow-sm shadow-black/20'
 
   return (
-    <div className="max-w-2xl">
-      <Link href="/leads" className="text-blue-600">&larr; Back to Leads</Link>
+    <div className="max-w-6xl">
+      <Link href="/leads" className="ui-focus text-sm text-accent">&larr; Back to Leads</Link>
 
-      <div className="flex items-start justify-between gap-3 mt-3 mb-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">{lead.name}</h1>
-          <p className="text-slate-500">Lead #{lead.lead_no}</p>
-          <Link href={'/leads/' + lead.id + '/edit'} className="inline-block mt-2 text-blue-600 font-semibold">Edit Lead / Reassign</Link>
-        </div>
-        <span className={'rounded-full px-3 py-1 text-sm font-medium ' + (qualityColor[lead.quality] ?? '')}>
-          {lead.quality} ({lead.score})
-        </span>
-      </div>
-
-      <NextAction status={lead.status} callAttempts={lead.call_attempts} lastCallStatus={lead.last_call_status} nextFollowupAt={lead.next_followup_at} followupType={lead.followup_type} budget={lead.budget} purpose={lead.purpose} timeline={lead.timeline} lastActivityAt={(activities[0] as { created_at?: string } | undefined)?.created_at ?? null} />
-      <div className="bg-white rounded-2xl shadow p-4 grid grid-cols-2 gap-4 mb-6">
-        <Info label="Phone" value={lead.phone} />
-        <Info label="Alternate phone" value={lead.alt_phone} />
-        <Info label="Status" value={lead.status} />
-        <Info label="Assigned to" value={lead.assigned_to ? people[lead.assigned_to] : 'Unassigned'} />
-        <Info label="Source" value={lead.source} />
-        <Info label="Campaign" value={lead.campaign} />
-        <Info label="Ad set / Ad" value={[lead.ad_set, lead.ad].filter(Boolean).join(' / ')} />
-        <Info label="Project" value={projectName || null} />
-        <Info label="Property type" value={lead.property_type} />
-        <Info label="Preferred location" value={lead.preferred_location} />
-        <Info label="Budget" value={formatBudget(lead.budget)} />
-        <Info label="Purpose" value={lead.purpose} />
-        <Info label="Payment preference" value={lead.payment_preference} />
-        <Info label="Interest level" value={lead.interest_level} />
-        <Info label="Plans to buy" value={lead.timeline} />
-        <Info label="Call attempts" value={String(lead.call_attempts ?? 0)} />
-        <Info label="Last call result" value={lead.last_call_status} />
-        <div className="col-span-2">
-          <p className="text-xs text-slate-500">Next follow-up</p>
-          {lead.next_followup_at ? (
-            <p className={'text-base ' + (overdue ? 'text-red-600 font-semibold' : 'text-slate-800')}>
-              {overdue ? 'Overdue: ' : ''}
-              {lead.followup_type} on {formatDate(lead.next_followup_at)}
-              {lead.followup_note ? ' - ' + lead.followup_note : ''}
-            </p>
-          ) : (
-            <p className="text-base text-slate-800">-</p>
-          )}
-        </div>
-        <div className="col-span-2">
-          <Info label="Notes" value={lead.notes} />
-        </div>
-      </div>
-
-      <h2 className="text-lg font-semibold text-slate-800 mb-2">Activity</h2>
-      <div className="bg-white rounded-2xl shadow p-4 mb-6 space-y-4">
-        {activities.length === 0 && <p className="text-slate-500">No activity yet.</p>}
-        {activities.map((a) => (
-          <div key={a.id} className="border-l-4 border-blue-200 pl-3">
-            <p className="font-medium text-slate-800">
-              {a.type}
-              {a.call_result ? ' - ' + a.call_result : ''}
-            </p>
-            {a.detail && <p className="text-slate-600">{a.detail}</p>}
-            <p className="text-xs text-slate-500">
-              {formatDate(a.created_at)}
-              {a.done_by && people[a.done_by] ? ' by ' + people[a.done_by] : ''}
+      <div className={box2 + ' mt-3 mb-4'}>
+        <div className="flex flex-wrap items-start gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-accent-soft text-xl font-semibold text-blue-300" aria-hidden="true">
+            {(lead.name || '?').charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0 flex-1 basis-56">
+            <h1 className="truncate text-2xl font-bold text-slate-100">{lead.name}</h1>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <QualityBadge quality={lead.quality} score={lead.score} />
+              <StatusPill status={lead.status} />
+              <span className="text-sm text-muted">Lead #{lead.lead_no}</span>
+            </div>
+            <p className="mt-2 text-sm text-slate-300">
+              {projectName ? 'Project: ' : ''}<b className="text-slate-100">{projectName || 'No project selected'}</b>
+              {' · '}Budget: <b className="text-slate-100">{formatBudget(lead.budget)}</b>
             </p>
           </div>
-        ))}
+          <div className="grid w-full grid-cols-2 gap-2 sm:w-auto sm:grid-cols-4">
+            <button onClick={() => goPanel('call')} className="ui-focus rounded-lg bg-success px-4 py-2.5 text-sm font-semibold text-black transition-colors hover:bg-green-400">Call</button>
+            <a href={'https://wa.me/91' + lead.phone} target="_blank" rel="noreferrer" className={qBtn}>WhatsApp</a>
+            <button onClick={() => goPanel('followup')} className={qBtn}>Follow-up</button>
+            <Link href={'/leads/' + lead.id + '/edit'} className={qBtn}>Edit</Link>
+          </div>
+        </div>
       </div>
 
-      <h2 className="text-lg font-semibold text-slate-800 mb-2">Actions</h2>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-4">
-        <button
-          onClick={() => setPanel('call')}
-          className="rounded-xl py-3 px-2 text-base font-semibold text-center bg-green-600 text-white"
-        >
-          Call
-        </button>
-        <button onClick={() => setPanel('note')} className={actionBtn}>Add Note</button>
-        <button onClick={() => setPanel('followup')} className={actionBtn}>Set Follow-up</button>
-        <button onClick={() => setPanel('status')} className={actionBtn}>Change Status</button>
-        <button onClick={() => setPanel('visit')} className={actionBtn}>Schedule Site Visit</button>
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-4 lg:col-span-2">
+          <NextAction status={lead.status} callAttempts={lead.call_attempts} lastCallStatus={lead.last_call_status} nextFollowupAt={lead.next_followup_at} followupType={lead.followup_type} budget={lead.budget} purpose={lead.purpose} timeline={lead.timeline} lastActivityAt={lastAt} />
+
+          <div className={box2}>
+            <h2 className="mb-3 text-base font-semibold text-slate-100">Sales Status</h2>
+            {isLost ? (
+              <p className="rounded-lg border border-red-900 bg-danger-soft px-3 py-2 text-sm font-semibold text-red-300">This lead is closed: {lead.status}</p>
+            ) : (
+              <ol className="flex gap-1 overflow-x-auto" aria-label="Sales status">
+                {stages.map((g, i) => (
+                  <li key={g.label} className={'flex-1 whitespace-nowrap rounded-md px-2 py-2 text-center text-xs font-semibold ' + (i === curIdx ? 'bg-accent text-white' : i < curIdx ? 'bg-accent-soft text-blue-300' : 'bg-surface-2 text-muted')}>
+                    {g.label}
+                  </li>
+                ))}
+              </ol>
+            )}
+            <p className="mt-2 text-xs text-muted">Current status: {lead.status}</p>
+          </div>
+
+          <div className={box2}>
+            <h2 className="mb-3 text-base font-semibold text-slate-100">Lead Overview</h2>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+              {row('Phone', lead.phone)}
+              {row('Alternate phone', lead.alt_phone)}
+              {row('Assigned to', lead.assigned_to ? people[lead.assigned_to] : 'Unassigned')}
+              {row('Source', lead.source)}
+              {row('Campaign', lead.campaign)}
+              {row('Ad set / Ad', [lead.ad_set, lead.ad].filter(Boolean).join(' / '))}
+              {row('Property type', lead.property_type)}
+              {row('Preferred location', lead.preferred_location)}
+              {row('Purpose', lead.purpose)}
+              {row('Payment preference', lead.payment_preference)}
+              {row('Interest level', lead.interest_level)}
+              {row('Plans to buy', lead.timeline)}
+            </div>
+            {lead.notes && (
+              <div className="mt-4 border-t border-line pt-3">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted">Notes</p>
+                <p className="mt-1 whitespace-pre-wrap text-sm text-slate-200">{lead.notes}</p>
+              </div>
+            )}
+          </div>
+
+          <div className={box2}>
+            <h2 className="mb-3 text-base font-semibold text-slate-100">Activity</h2>
+            {activities.length === 0 && <p className="text-sm text-muted">No activity yet.</p>}
+            <ul className="space-y-3">
+              {activities.map((a) => (
+                <li key={a.id} className="border-l-2 border-accent pl-3">
+                  <p className="text-sm font-medium text-slate-100">{a.type}{a.call_result ? ' - ' + a.call_result : ''}</p>
+                  {a.detail && <p className="text-sm text-slate-300">{a.detail}</p>}
+                  <p className="text-xs text-muted">{formatDate(a.created_at)}{a.done_by && people[a.done_by] ? ' by ' + people[a.done_by] : ''}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          <div className={box2}>
+            <h2 className="mb-3 text-base font-semibold text-slate-100">Contact Summary</h2>
+            <div className="grid grid-cols-2 gap-4">
+              {row('Last contact', lastText)}
+              {row('Call attempts', String(lead.call_attempts ?? 0))}
+              {row('Last call result', lead.last_call_status)}
+            </div>
+            <div className="mt-4 border-t border-line pt-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-muted">Next follow-up</p>
+              {lead.next_followup_at ? (
+                <p className={'mt-1 text-sm font-semibold ' + (overdue ? 'text-danger' : 'text-slate-100')}>
+                  {overdue ? 'Overdue: ' : ''}{lead.followup_type} on {formatDate(lead.next_followup_at)}
+                  {lead.followup_note ? ' - ' + lead.followup_note : ''}
+                </p>
+              ) : (
+                <p className="mt-1 text-sm text-muted">Not set</p>
+              )}
+            </div>
+          </div>
+
+          <div className={box2}>
+            <h2 className="mb-3 text-base font-semibold text-slate-100">Quick Actions</h2>
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={() => goPanel('note')} className={qBtn}>Add Note</button>
+              <button onClick={() => goPanel('followup')} className={qBtn}>Set Follow-up</button>
+              <button onClick={() => goPanel('status')} className={qBtn}>Change Status</button>
+              <button onClick={() => goPanel('visit')} className={qBtn}>Site Visit</button>
+            </div>
+          </div>
+
+          <WhatsAppTemplates name={lead.name} phone={lead.phone} projectName={projectName} />
+        </div>
       </div>
 
-      <WhatsAppTemplates name={lead.name} phone={lead.phone} projectName={projectName} />
 
       {error && <p className="text-red-600 mb-3">{error}</p>}
 

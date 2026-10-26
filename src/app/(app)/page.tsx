@@ -171,7 +171,7 @@ export default function DashboardPage() {
           <Link href="/leads/new" className="bg-blue-600 text-white rounded-xl px-4 py-3 font-semibold">
             + Add Lead
           </Link>
-          <Link href="/settings" className="bg-slate-100 text-slate-800 rounded-xl px-4 py-3 font-semibold">
+          <Link href="/reports" className="ui-focus rounded-lg border border-line bg-surface-2 px-4 py-2.5 text-sm font-semibold text-slate-100 transition-colors hover:bg-line">
             Import Leads
           </Link>
         </div>
